@@ -26,12 +26,10 @@ struct QRVwr {
 impl Default for QRVwr {
     fn default() -> Self {
         let mut ctx = ClipboardContext::new().unwrap();
-        let content = ctx.get_contents().unwrap();
-
-        if content.is_empty() {
-            panic!("Fatal: No clipboard content was found.");
-        }
-
+        let content = match ctx.get_contents() {
+            Ok(cc) => cc,
+            Err(_) => panic!("Fatal: No clipboard content was found.")
+        };
         let qr_code = QrCode::new(&content).unwrap();
         
         Self {
