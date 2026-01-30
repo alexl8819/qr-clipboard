@@ -1,3 +1,4 @@
+use std::process::Command;
 use copypasta::{ClipboardContext, ClipboardProvider};
 use qr_code::{QrCode, bmp_monochrome};
 use eframe::NativeOptions;
@@ -26,10 +27,22 @@ struct QRVwr {
 impl Default for QRVwr {
     fn default() -> Self {
         let mut ctx = ClipboardContext::new().unwrap();
-        let content = match ctx.get_contents() {
+        let mut content = match ctx.get_contents() {
             Ok(cc) => cc,
             Err(_) => panic!("Fatal: No clipboard content was found.")
         };
+
+        // x11 was likely not available or being used, attempting wayland workaround using `wl-paste`
+        if content.is_empty() {
+            let wl_output = Command::new("wl-paste").output().expect("failed to execute command: unable to check wayland clipboard");
+            
+            if !wl_output.status.success() {
+                panic!("Fatal: No clipboard content was found - tried x11 and wayland");
+            }
+
+            content = String::from_utf8_lossy(&wl_output.stdout).to_string();
+        }
+
         let qr_code = QrCode::new(&content).unwrap();
         
         Self {
